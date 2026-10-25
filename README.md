@@ -273,6 +273,19 @@ npm run dev        # http://localhost:5173
 
 `VITE_API_URL` is optional. Without it, the client uses the LAN address hardcoded in `src/api/axios.js`.
 
+### Deploying (Render + Vercel + MongoDB Atlas)
+
+The repo includes [`render.yaml`](render.yaml) for the API and [`frontend/vercel.json`](frontend/vercel.json) for the single-page app. `vercel.json` sends every route to `index.html`, so a page refresh on `/dashboard` still loads the app.
+
+1. **API on Render.** Choose New → Blueprint and pick this repository. Render creates `moneymap-api` from `render.yaml`, generates `JWT_SECRET` for you, and asks for `MONGO_URI`, `GMAIL_USER`, `GMAIL_APP_PASSWORD` and `GEMINI_API_KEY`.
+2. **Database access.** In MongoDB Atlas, open Network Access and allow connections from Render. The free tier has no fixed outbound IP, so this usually means `0.0.0.0/0`.
+3. **Frontend on Vercel.** Import the repository with Root Directory set to `frontend`. Add the environment variable `VITE_API_URL=https://<your-render-service>.onrender.com/api`, then deploy.
+
+Free-tier caveats:
+- The Render instance sleeps after about 15 minutes idle, so the first request takes around 30 seconds to wake it.
+- Cron jobs only run while the instance is awake.
+- Render's free tier may block outbound SMTP. If OTP emails fail, use a paid instance or switch `emailService` to an HTTP email API.
+
 ---
 
 ## 9. Known limitations and roadmap
