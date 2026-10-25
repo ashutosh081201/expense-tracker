@@ -1,0 +1,24 @@
+# Render Blueprint for the MoneyMap API (https://render.com/docs/blueprint-spec)
+# Secret values are entered in the Render dashboard, never committed.
+services:
+  - type: web
+    name: moneymap-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
