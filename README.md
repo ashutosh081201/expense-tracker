@@ -5,6 +5,7 @@ A full-stack **MERN** app for managing your money in one place. It tracks expens
 Built for the Indian context: amounts in ₹ with Indian digit grouping (₹1,25,000), EMI-based loans, and bill categories like OTT, Rent and Credit Card.
 
 **Live demo:** https://expense-tracker-five-omega-32.vercel.app
+
 **API:** https://moneymap-api-v1q2.onrender.com (free tier: the first request after about 15 minutes idle takes 30–60 seconds while the server wakes up)
 
 ![Dashboard](docs/screenshots/dashboard.jpg)
