@@ -1,14 +1,47 @@
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
-// Create transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
+// ─── Brevo HTTPS transport — used when BREVO_API_KEY is set.
+// Hosts like Render's free tier block outbound SMTP ports, so
+// production sends over HTTPS instead. Same sendMail() shape as
+// nodemailer, so the email functions below don't change. ───
+const brevoTransport = {
+  sendMail: async ({ to, subject, html }) => {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": process.env.BREVO_API_KEY,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: {
+          name: "MoneyMap",
+          email: process.env.EMAIL_FROM || process.env.GMAIL_USER,
+        },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(`Brevo email failed (${res.status}): ${detail}`);
+    }
+    return res.json();
   },
-});
+};
+
+// Create transporter — Brevo in production, Gmail SMTP locally
+const transporter = process.env.BREVO_API_KEY
+  ? brevoTransport
+  : nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    });
 
 // ─── Shared email shell — works well on desktop, mobile
 // clients, and shows a clean preview in mobile notifications ───

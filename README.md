@@ -122,7 +122,7 @@ api/axios.js  Axios instance with Bearer-token interceptor
 | Layer | Technology |
 |---|---|
 | Frontend | React 19, React Router 7, Vite 8, Tailwind CSS 4, Chart.js 4, react-hot-toast, jsPDF + autoTable, SheetJS |
-| Backend | Node.js, Express 5, Mongoose 9, JSON Web Tokens, bcryptjs, node-cron, Nodemailer |
+| Backend | Node.js, Express 5, Mongoose 9, JSON Web Tokens, bcryptjs, node-cron, Nodemailer (local) / Brevo HTTPS API (production) |
 | Database | MongoDB (TTL index for OTPs, unique compound indexes for budgets and snapshots) |
 | AI | Google Gemini (`@google/generative-ai`) |
 | Testing | Jest 30, Supertest, mongodb-memory-server, Vitest 5, React Testing Library, jsdom |
@@ -199,10 +199,10 @@ All routes except the public auth routes need `Authorization: Bearer <jwt>`.
 
 ## 7. Testing
 
-**103 automated tests, all passing.** Backend line coverage is 91.5% (the uncovered lines are mostly generic `catch → 500` handlers). `npm run lint` and `npm run build` both pass cleanly.
+**106 automated tests, all passing.** Backend line coverage is 91.5% (the uncovered lines are mostly generic `catch → 500` handlers). `npm run lint` and `npm run build` both pass cleanly.
 
 ```bash
-cd backend && npm test               # 91 API/integration/unit tests (Jest + Supertest)
+cd backend && npm test               # 94 API/integration/unit tests (Jest + Supertest)
 cd backend && npm run test:coverage  # with coverage report
 cd frontend && npm test              # 12 unit tests (Vitest + React Testing Library)
 ```
@@ -222,6 +222,7 @@ cd frontend && npm test              # 12 unit tests (Vitest + React Testing Lib
 | `planning.test.js` | 22 | Bill status from day of month, sort order, on-time vs late with 2-day grace, category mapping (OTT → Entertainment), no double payment, linked-expense matching, 12-month history cap; EMI monthly payments, early-payment refusal, loan closure, "already fully paid"; goal money cap and auto-complete, amounts `"abc"`/0/negative/missing → 400, isolation; net-worth formula; snapshot month label, safe re-runs, chronological history; **edit protection**: bill payment history, EMI `paidMonths`/`isActive` and goal progress can't be forged, EMI and net-worth edits are validated |
 | `insights.test.js` | 14 | Report periods (this/last month, this year, last year, custom with inclusive end date, **last quarter in January rolling back to Q4 of the previous year**); snapshot totals; AI health score (100 for a healthy profile, 51 with exceeded budgets, a heavy EMI and negative cash flow); prompt guardrails and data; code-fence stripping; unparseable output → 500; 503 retry then success; gives up after 3 attempts; non-retryable errors fail immediately; profile hides the password |
 | `cron.test.js` | 5 | All 3 schedules registered; bill reminders limited to the right bills and grouped per user; budget alerts only at ≥80%; one user's SMTP failure doesn't stop others; monthly snapshot for every user |
+| `emailService.test.js` | 3 | With `BREVO_API_KEY` set, OTP emails go to Brevo's HTTPS API with the key, the verified sender and the rendered template; Brevo errors are thrown; without the key, the service falls back to Gmail SMTP (nodemailer) |
 | `utils.test.js` | 6 | `pickFields` keeps only allow-listed, defined keys; `sendError` maps `ValidationError`/`CastError` → 400 and other errors → 500 |
 | `frontend/src/__tests__` | 12 | `useSearch` (case-insensitive, multi-field, numeric), `usePagination` (page maths, empty list), `useBulkSelect` (select-all only selects the current page and keeps other pages' selections), export row formatting (₹ Indian grouping, dates, empty notes), Axios JWT interceptor |
 
@@ -277,14 +278,14 @@ npm run dev        # http://localhost:5173
 
 The repo includes [`render.yaml`](render.yaml) for the API and [`frontend/vercel.json`](frontend/vercel.json) for the single-page app. `vercel.json` sends every route to `index.html`, so a page refresh on `/dashboard` still loads the app.
 
-1. **API on Render.** Choose New → Blueprint and pick this repository. Render creates `moneymap-api` from `render.yaml`, generates `JWT_SECRET` for you, and asks for `MONGO_URI`, `GMAIL_USER`, `GMAIL_APP_PASSWORD` and `GEMINI_API_KEY`.
-2. **Database access.** In MongoDB Atlas, open Network Access and allow connections from Render. The free tier has no fixed outbound IP, so this usually means `0.0.0.0/0`.
-3. **Frontend on Vercel.** Import the repository with Root Directory set to `frontend`. Add the environment variable `VITE_API_URL=https://<your-render-service>.onrender.com/api`, then deploy.
+1. **Email via Brevo.** Render's free tier [blocks outbound SMTP](https://render.com/docs/free), so the hosted app sends email through Brevo's HTTPS API (free, 300 emails/day). In Brevo, verify your sender address under Senders, then create an API key under SMTP & API → API Keys. `emailService` switches to Brevo automatically whenever `BREVO_API_KEY` is set; local development keeps using Gmail SMTP.
+2. **API on Render.** Choose New → Blueprint and pick this repository. Render creates `moneymap-api` from `render.yaml`, generates `JWT_SECRET` for you, and asks for `MONGO_URI`, `BREVO_API_KEY`, `EMAIL_FROM` (the verified sender) and `GEMINI_API_KEY`.
+3. **Database access.** In MongoDB Atlas, open Network Access and allow connections from Render. The free tier has no fixed outbound IP, so this usually means `0.0.0.0/0`.
+4. **Frontend on Vercel.** Import the repository with Root Directory set to `frontend`. Add the environment variable `VITE_API_URL=https://<your-render-service>.onrender.com/api`, then deploy.
 
 Free-tier caveats:
 - The Render instance sleeps after about 15 minutes idle, so the first request takes around 30 seconds to wake it.
 - Cron jobs only run while the instance is awake.
-- Render's free tier may block outbound SMTP. If OTP emails fail, use a paid instance or switch `emailService` to an HTTP email API.
 
 ---
 
@@ -323,5 +324,5 @@ The fix and the tests that prove it appear in the testing section.
 - Built an AI insights feature that computes a deterministic financial summary and health score on the server and sends only that summary to Google Gemini. The prompt enforces no-advice rules and strict JSON output, and 503 errors are retried with backoff.
 - Automated daily bill and budget email alerts and monthly net-worth snapshots with node-cron and Nodemailer, with errors isolated per user.
 - Built an analytics dashboard with 20+ Chart.js charts, a 0–100 Financial Health Score, and PDF/Excel report export for any time period.
-- Wrote 103 automated tests (Jest, Supertest, in-memory MongoDB, Vitest) reaching 91% backend line coverage, using a frozen clock to test date-dependent logic.
+- Wrote 106 automated tests (Jest, Supertest, in-memory MongoDB, Vitest) reaching 91% backend line coverage, using a frozen clock to test date-dependent logic.
 - Found and fixed a mass-assignment vulnerability: edit endpoints now accept only allow-listed fields, run schema validators, and return 400 for invalid input.
