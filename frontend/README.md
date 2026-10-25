@@ -1,16 +1,14 @@
-# React + Vite
+# MoneyMap: frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The React + Vite client for MoneyMap. See the [main README](../README.md) for what the app does, how it's built and how to deploy it.
 
-Currently, two official plugins are available:
+```bash
+npm install
+echo "VITE_API_URL=http://localhost:3000/api" > .env.local
+npm run dev     # http://localhost:5173
+npm test        # unit tests (Vitest)
+npm run lint
+npm run build   # production build in dist/
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+`VITE_API_URL` points the app at the backend API. In production it's set in Vercel's environment variables.
