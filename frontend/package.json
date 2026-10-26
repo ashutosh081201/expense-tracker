@@ -2,6 +2,7 @@
  "name": "moneymap",
  "private": true,
  "version": "0.0.0",
+ "description": "MoneyMap web client: React + Vite frontend for the MoneyMap personal finance tracker",
  "type": "module",
  "scripts": {
   "dev": "vite",

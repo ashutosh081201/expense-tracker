@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "MoneyMap API: Express + MongoDB backend for the MoneyMap personal finance tracker",
   "main": "server.js",
   "scripts": {
     "test": "jest --runInBand",
