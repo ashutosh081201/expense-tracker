@@ -120,24 +120,6 @@ echo "VITE_API_URL=http://localhost:3000/api" > .env.local
 npm run dev             # opens on http://localhost:5173
 ```
 
-## Tests
-
-```bash
-cd backend && npm test     # 94 tests
-cd frontend && npm test    # 12 tests
-```
-
-The backend tests start their own in-memory MongoDB and replace email and Gemini with mocks, so they never touch a real database or send real email. They call the actual Express app over HTTP and sign users up through the real OTP flow. Most of the logic depends on today's date (bill status, EMI due dates, quarter boundaries), so the tests freeze the clock to keep results consistent. Backend line coverage is about 91%.
-
-The tests cover:
-- **Auth:** OTP verification, expired and forged tokens, password reset and change.
-- **Data isolation:** one user can't read, edit or delete another user's records.
-- **Budgets and bills:** budget thresholds, bill status and payment punctuality.
-- **EMIs and goals:** EMI payment rules and closing a loan, goal contributions.
-- **Net worth and reports:** the net-worth formula, and report date ranges, including the last quarter of the previous year when run in January.
-- **AI Insights:** the health score, plus retrying when Gemini is busy.
-- **Scheduled jobs:** the daily bill and budget emails and the monthly snapshot.
-
 ## Deployment
 
 The repo includes [`render.yaml`](render.yaml) for the API and [`frontend/vercel.json`](frontend/vercel.json) for the frontend. Pushing to `main` redeploys both.
@@ -146,16 +128,6 @@ The repo includes [`render.yaml`](render.yaml) for the API and [`frontend/vercel
 2. **Render:** create a new Blueprint from this repo. Render reads `render.yaml`, generates `JWT_SECRET`, and asks for `MONGO_URI`, `BREVO_API_KEY`, `EMAIL_FROM` and `GEMINI_API_KEY`.
 3. **MongoDB Atlas:** under Network Access, allow connections from Render. On the free tier this means `0.0.0.0/0`.
 4. **Vercel:** import the repo with the root directory set to `frontend`, and set `VITE_API_URL` to your Render URL followed by `/api`.
-
-## Known issues and what's next
-
-- **"Sept" vs "Sep".** Month labels come from the browser's locale. In en-IN and en-GB browsers September is written "Sept", but the server uses "Sep", so September budgets don't match that month's spending. The fix is to use one fixed format everywhere, ideally `YYYY-MM`.
-- **No rate limiting on OTP endpoints.** Right now nothing stops someone from guessing codes or checking which emails are registered.
-- **Login token in `localStorage`.** Moving it to an httpOnly cookie, and restricting CORS to known origins, would be safer.
-- **Overpaying a goal.** If you add more than a goal needs, the goal stops at its target but the full amount is still recorded as a saving.
-- **Stats are calculated in JavaScript.** MongoDB aggregation pipelines would scale better.
-- **Scheduled jobs run inside the API process.** Running more than one server instance would send duplicate emails. On the free tier the jobs also only run while the server is awake.
-- **The frontend bundle is large** (about 1.5 MB). Loading pages on demand would help.
 
 ## Author
 
